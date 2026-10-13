@@ -1,0 +1,25 @@
+name: deployment-validation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  submit-real-failure:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install test dependencies
+        run: pip install -e '.[test]'
+      - name: Produce a real failing JUnit report
+        continue-on-error: true
+        run: pytest tests/fixtures/intentional_failure.py --junitxml=report.xml
+      - name: Submit report
+        env:
+          INGEST_HMAC_SECRET: ${{ secrets.INGEST_HMAC_SECRET }}
+        run: python scripts/send_junit.py report.xml --url '${{ vars.SPIKE_BASE_URL }}'
+
