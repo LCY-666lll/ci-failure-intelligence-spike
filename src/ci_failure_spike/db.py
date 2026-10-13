@@ -32,8 +32,22 @@ class TestFailure(Base):
     detail: Mapped[str] = mapped_column(Text)
 
 
+def normalize_database_url(database_url: str) -> str:
+    """Accept provider-style PostgreSQL URLs while keeping asyncpg explicit."""
+    if database_url.startswith("postgresql://"):
+        return database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    if database_url.startswith("postgres://"):
+        return database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    return database_url
+
+
 def make_engine(database_url: str) -> AsyncEngine:
-    return create_async_engine(database_url, pool_pre_ping=True, pool_size=2, max_overflow=1)
+    return create_async_engine(
+        normalize_database_url(database_url),
+        pool_pre_ping=True,
+        pool_size=2,
+        max_overflow=1,
+    )
 
 
 async def initialize(engine: AsyncEngine) -> None:
